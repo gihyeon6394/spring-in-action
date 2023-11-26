@@ -1,6 +1,6 @@
 package com.example.inaction;
 
-import com.example.inaction.config.security.RegistrationForm;
+import com.example.inaction.config.RegistrationForm;
 import com.example.inaction.repo.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;

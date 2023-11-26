@@ -1,4 +1,4 @@
-package com.example.inaction.config.security;
+package com.example.inaction.config;
 
 import com.example.inaction.entity.User;
 import lombok.Data;

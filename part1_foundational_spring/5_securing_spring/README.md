@@ -238,7 +238,7 @@ public class SecurityConfig {
 - /registerForm 에 login 없이 접근 불가능
 
 ```java
-import com.example.inaction.config.security.RegistrationForm;
+import com.example.inaction.config.RegistrationForm;
 import com.example.inaction.repo.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -298,6 +298,236 @@ public class RegistrationForm {
 ````
 
 ## 3. Securing web requests
+
+- 권한이 필요없는 페이지 : login, home, register
+- `SecurityFilterChain` bean으로 구성
+
+````
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    return http.build();
+}
+````
+
+#### Configuring the HttpSecurity
+
+- web level에서 동작할 security 설정
+- request를 처리하기 전에 특정 security 조건
+- custom login page
+- application logout 허가
+- cross-site request forgery 허가
+
+### 3.1 Securing requests
+
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SecurityConfig {
+
+    // ...
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .authorizeRequests()
+                .requestMatchers("/design", "/orders").hasRole("USER") // /design, /orders 경로에 대한 요청은 USER 권한이 있어야 함
+                .requestMatchers("/", "/**").permitAll() // /, /** 경로에 대한 요청은 모두 허용
+                .and()
+                .build();
+    }
+}
+
+```
+
+- 순서 중요 : 먼저 선언된 것이 우선순위가 높음
+
+| Method                       | Description                        |
+|------------------------------|------------------------------------|
+| `access(String)`             | 표현식을 (SpEL) 사용하여 특정 요청에 대한 접근을 제한  |
+| `anonymous()`                | 익명 사용자에 대한 접근을 제한                  |
+| `authenticated()`            | 인증된 사용자에 대한 접근을 제한                 |
+| `denyAll()`                  | 모든 접근을 거부                          |
+| `fullyAuthenticated()`       | 완전히 인증된 사용자에 대한 접근을 제한             |
+| `hasAnyAuthority(String...)` | 주어진 권한 중 하나 이상을 가진 사용자에 대한 접근을 제한  |
+| `hasAnyRole(String...)`      | 주어진 역할 중 하나 이상을 가진 사용자에 대한 접근을 제한  |
+| `hasAuthority(String)`       | 주어진 권한을 가진 사용자에 대한 접근을 제한          |
+| `hasIpAddress(String)`       | 주어진 IP 주소를 가진 사용자에 대한 접근을 제한       |
+| `hasRole(String)`            | 주어진 역할을 가진 사용자에 대한 접근을 제한          |
+| `not()`                      | 다른 접근 제한 메서드의 결과를 부정               |
+| `permitAll()`                | 모든 접근을 허용                          |
+| `rememberMe()`               | remember-me 인증을 사용한 사용자에 대한 접근을 제한 |
+
+#### SpEL (Spring Expression Language)
+
+- SpEL을 사용해 더 유연하게 표현식을 사용할 수 있음
+
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SecurityConfig {
+
+    // ...
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .authorizeRequests()
+                .antMatchers("/design", "/orders").access("hasRole('USER')")
+                .antMatchers("/", "/**").access("permitAll()")
+                .and()
+                .build();
+    }
+}
+
+```
+
+<img src="img_1.png"  width="50%"/>
+
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SecurityConfig {
+
+    // ...
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .authorizeRequests()
+                .antMatchers("/design", "/orders")
+                .access("hasRole('USER') && " +
+                        "T(java.util.Calendar).getInstance().get(" +
+                        "T(java.util.Calendar).DAY_OF_WEEK) == " +
+                        "T(java.util.Calendar).TUESDAY") // 화요일에만 /design, /orders 경로에 대한 요청을 허용
+                .antMatchers("/", "/**").access("permitAll")
+                .and()
+                .build();
+    }
+}
+
+```
+
+### 3.2 Creating a custom login page
+
+- `fromLogin()` : login page를 보여주는 GET 요청을 처리
+
+```java
+package com.example.inaction.config.security;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .authorizeRequests()
+                .requestMatchers("/design", "/orders").hasRole("USER") // /design, /orders 경로에 대한 요청은 USER 권한이 있어야 함
+                .requestMatchers("/", "/**").permitAll() // /, /** 경로에 대한 요청은 모두 허용
+                .and()
+                .formLogin((formLogin) ->
+                        formLogin.loginPage("/login") // 로그인 페이지 경로
+                                .defaultSuccessUrl("/something_after_login") // 로그인 성공 시 이동할 경로
+                ).logout((logout) ->
+                        logout.logoutSuccessUrl("/login") // 로그아웃 성공 시 이동할 경로 (default: home)
+                                .invalidateHttpSession(true) // 로그아웃 시 세션 무효화
+                )
+                .build();
+    }
+}
+
+```
+
+```java
+
+package com.example.inaction.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    // view controller를 등록
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/").setViewName("home");
+        registry.addViewController("/login"); // login.html을 렌더링하는 컨트롤러를 추가
+    }
+}
+```
+
+- `/login`에 대한 Request를 처리할 수 있는 controller 등록
+- 기본적으로 Spring Security는 `/login` 으로부터 요청되는 login form에 대해 `username`과 `password`를 기대
+    - cutomizing 가능
+
+```java
+package com.example.inaction.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .authorizeRequests()
+                .requestMatchers("/design", "/orders").hasRole("USER") // /design, /orders 경로에 대한 요청은 USER 권한이 있어야 함
+                .requestMatchers("/", "/**").permitAll() // /, /** 경로에 대한 요청은 모두 허용
+                .and()
+                .formLogin((formLogin) ->
+                        formLogin.loginPage("/login") // 로그인 페이지 경로
+                                .defaultSuccessUrl("/something_after_login") // 로그인 성공 시 이동할 경로
+                                .usernameParameter("ex_user_name") // custom username 파라미터명
+                                .passwordParameter("ex_password") // custom password 파라미터명
+                ).logout((logout) ->
+                        logout.logoutSuccessUrl("/login") // 로그아웃 성공 시 이동할 경로
+                                .invalidateHttpSession(true) // 로그아웃 시 세션 무효화
+                )
+                .build();
+    }
+}
+
+```
+
+### 3.3 Enabling third-party authentication
+
+### 3.4 Preventing cross-site request forgery
 
 ## 4. Applying method-level security
 
