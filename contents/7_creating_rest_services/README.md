@@ -301,6 +301,74 @@ public class IdolController {
 
 ## 2. Enabling data-backed services
 
+```xml
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-rest</artifactId>
+</dependency>
+```
+
+```yaml
+spring:
+  data:
+  rest:
+  base-path: /data-api # spring data rest의 기본 endpoint를 /data-api로 변경
+```
+
+- Spring Data로 생성한 모든 Repository 기반의 REST API를 생성해줌
+    - Spring Data JPA, Spring Data MongoDB, Spring Data Neo4j, Spring Data Cassandra, Spring Data Redis, Spring Data
+      Elasticsearch, ...
+- endpoint를 추가할 필요 없음
+- hyperlink 반환 : HATEOAS (Hypermedia as the Engine of Application State) 등을 위해 사용 가능
+
+#### HATEOAS (Hypermedia as the Engine of Application State)
+
+- 사람이 웹사이트 탐색하듯 API를 탐색할 수 있도록 함
+- API 응답에 여러 링크가 포함되어있어, 추가 탐색이 가능해짐
+
+### 2.1 Adjusting resource paths and relation names
+
+- 기본적으로 리소스 경로를 repository entity 이름으로 생성
+    - e.g. `Idol` entity의 경우, `{base-path}/idols`로 생성
+- `/{base-path}` : Spring Data REST의 기본 endpoint
+    - 모든 repository entity에 대한 REST endpoint를 반환
+
+```json
+{
+  "_links": {
+    "idols": {
+      "href": "http://localhost:8080/rest-api/idols"
+    },
+    "users": {
+      "href": "http://localhost:8080/rest-api/users"
+    },
+    "members": {
+      "href": "http://localhost:8080/rest-api/members"
+    },
+    "profile": {
+      "href": "http://localhost:8080/rest-api/profile"
+    }
+  }
+}
+```
+
+````
+@RestResource(rel = "rest_members", path = "rest_members")
+public class Member {
+    ...
+}
+````
+
+- `@TestResource` : Spring Data REST가 생성하는 REST endpoint의 이름을 변경
+    - e.g. `@TestResource(path = "rest_members")` : `Member` entity의 REST endpoint를 `{base-path}/rest_members`로 생성
+
+### 2.2 Paging and sorting
+
+```Bash
+GET http://localhost:8080/rest-api/members?size=3&page=1
+````
+
 ## 3. Consuming REST services
 
 ## 4. Summary

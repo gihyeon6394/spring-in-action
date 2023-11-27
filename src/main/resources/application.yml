@@ -23,4 +23,7 @@ spring:
     cache: true
     prefix: classpath:/templates/
     suffix: .html
+  data:
+    rest:
+      base-path: /rest-api
 
