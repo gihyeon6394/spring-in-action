@@ -37,6 +37,8 @@ dependencies {
 	// oauth
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
+	implementation 'org.apache.commons:commons-lang3:3.4'
+
 }
 
 tasks.named('test') {
