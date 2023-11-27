@@ -655,4 +655,38 @@ public TacoOrder getOrder(long id) {
 
 ## 5. Knowing your user
 
+- 사용자의 로그인 여부 / role 등을 알아야 할 때
+
+````
+@PostMapping
+public String processOrder(@Valid TacoOrder order, Errors errors, SessionStatus sessionStatus,
+    @AuthenticationPrincipal User user) { // cast 필요 없음
+    
+    if (errors.hasErrors()) {
+        return "orderForm";
+    }
+    
+    order.setUser(user);
+    
+    orderRepo.save(order);
+    sessionStatus.setComplete();
+    
+    return "redirect:/";
+}
+````
+
+#### 가장 많이 쓰이는 방법
+
+- controller method에 `java.security.Principal` 주입
+- contoller method에 `org.springframework.security.core.Authentication` 주입
+- security context를 가져오기위해 `org.springframework.security.core.context.SecurityContextHolder` 사용
+- mehtod parameter에 `@AuthenticationPrincipal` 사용
+    - `@AuthenticationPrincipal` : `org.springframework.security.core.annotation`
+
 ## 6. Summary
+
+- Spring Security는 security 관련 설정을 자동으로 제공
+- 사용자 정보는 relational db, LDAP, in-memory 등 다양한 곳에 저장 가능
+- Spring Security는 CSRF 공격을 자동으로 방지
+- `SecurityContext` 로부터 사용자 정보를 가져올 수 있음
+    - `@AuthenticationPrincipal` 추천
