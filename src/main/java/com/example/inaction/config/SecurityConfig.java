@@ -9,6 +9,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -50,6 +52,7 @@ public class SecurityConfig {
                         logout.logoutSuccessUrl("/login") // 로그아웃 성공 시 이동할 경로
                                 .invalidateHttpSession(true) // 로그아웃 시 세션 무효화
                 )
+                .csrf(AbstractHttpConfigurer::disable)
                 .build();
     }
 

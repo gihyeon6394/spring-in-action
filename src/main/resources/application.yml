@@ -9,7 +9,7 @@ spring:
     password: root
   jpa: # JPA 설정
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
     show-sql: true # 쿼리 보기
     format-sql: true # 쿼리 포맷팅
     use_sql_comments: true # 쿼리 주석
