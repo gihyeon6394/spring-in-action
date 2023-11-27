@@ -605,6 +605,54 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
 ## 4. Applying method-level security
 
+```java
+
+@Controller
+@RequestMapping("/admin")
+public class AdminController {
+    private OrderAdminService adminService;
+
+    public AdminController(OrderAdminService adminService) {
+        this.adminService = adminService;
+    }
+
+    @PostMapping("/deleteOrders")
+    public String deleteAllOrders() {
+        adminService.deleteAllOrders(); // 이 메서드가 다른 Controller에서도 호출될 수 있을 텐데?
+        return "redirect:/admin";
+    }
+}
+```
+
+```
+@Configuration
+@EnableGlobalMethodSecurity // 메서드에 대한 security 설정을 활성화
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+ ...
+}
+
+...
+
+// 메서드에 대한 security 설정
+@PreAuthorize("hasRole('ADMIN')") // ADMIN 권한이 있어야만 메서드가 수행됨
+public void deleteAllOrders() {
+    orderRepository.deleteAll();
+}
+
+@PostAuthorize("hasRole('ADMIN') || " +
+ "returnObject.user.username == authentication.name") // ADMIN 권한이 있거나, 현재 사용자가 주문한 것이라면 메서드가 수행됨 
+public TacoOrder getOrder(long id) {
+ ...
+}
+```
+
+- `@PreAuthorize` : 메서드가 호출되기 전에 security check 수행
+    - SpEL 사용
+    - return true일 때만, 메서드가 수행됨
+    - return false -> `AccessDeniedException` 발생
+        - -> 403 Forbidden 응답 (추가 구현)
+- `@PostAuthorize` : 메서드가 호출된 후에 security check 수행
+
 ## 5. Knowing your user
 
 ## 6. Summary
