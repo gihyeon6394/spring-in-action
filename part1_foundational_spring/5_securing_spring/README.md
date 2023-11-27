@@ -527,7 +527,81 @@ public class SecurityConfig {
 
 ### 3.3 Enabling third-party authentication
 
+- sign in with Google, Facebook 등
+- OAuth2, OpenID Connect 기반
+
+```xml
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-oauth2-client</artifactId>
+</dependency>
+```
+
+```yaml
+spring:
+  security:
+  oauth2:
+  client:
+  registration:
+  <oauth2 or openid provider name>:
+  clientId: <client id>
+  clientSecret: <client secret>
+  scope: <comma-separated list of requested scopes>
+```
+
+```html
+<a th:href="/oauth2/authorization/google">Sign in with Google</a>
+```
+
+````
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    return http
+        .authorizeRequests()
+        .mvcMatchers("/design", "/orders").hasRole("USER")
+        .anyRequest().permitAll()
+        .and()
+            .formLogin().loginPage("/login")
+        .and()
+            .oauth2Login() // OAuth2 로그인 활성화
+            .loginPage("/oauth2/authorization/google") // OAuth2 로그인 시도 시 이동할 경로 (e.g. /oauth2/authorization/google)
+        ...
+        .and()
+            .logout() // 로그아웃 활성화
+            .logoutSuccessUrl("/login") // 로그아웃 성공 시 이동할 경로
+        .build();
+}
+````
+
+- `clientId` : OAuth2 provider에서 발급한 client id
+- `scope` : OAuth2 provider에게 요청할 권한
+
 ### 3.4 Preventing cross-site request forgery
+
+- CSRF : 악의적인 사용자가 사용자의 권한을 이용해 서버에 요청하는 것
+- e.g. 사용자에게 공격자의 website를 노출하고 자동으로 post 요청하게만듦
+    - post 요청 : 은행으로 송금 요청 등
+- 해결방안 : CSRF token 사용
+    - 서버는 CSRF token을 생성하여 사용자에게 전달 (hidden field, cookie)
+    - 사용자는 서버로부터 전달받은 CSRF token을 요청에 포함시켜 전송
+- Spring Security 는 built-in CSRF protection 제공
+    - `_csrf` 라는 이름의 hidden field를 생성 (thymeleaf 사용 시 자동 생성)
+
+```html
+<input type="hidden" name="_csrf" th:value="${_csrf.token}"/>
+```
+
+```html
+<!-- th:action 을 사용하면 자동으로 CSRF token을 hidden field로 생성 -->
+<form method="POST" th:action="@{/login}" id="loginForm">
+```
+
+````
+.and()
+ .csrf()
+ .disable() // CSRF 보호 비활성화 (절대 비추!!)
+````
 
 ## 4. Applying method-level security
 
