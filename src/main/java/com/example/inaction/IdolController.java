@@ -5,11 +5,13 @@ import com.example.inaction.entity.Member;
 import com.example.inaction.repo.IdolRepository;
 import com.example.inaction.repo.MemberRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 @RestController // REST API를 처리하는 컨트롤러
 @RequestMapping(path = "/api/members" // request URI : /api/members/**
@@ -20,6 +22,9 @@ public class IdolController {
 
     private IdolRepository idolRepository;
     private MemberRepository memberRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     @GetMapping(params = "recent")
     public Iterable<Idol> recentIdols() {
@@ -57,5 +62,12 @@ public class IdolController {
     public void deleteIdol(@PathVariable("id") Long id) {
         idolRepository.deleteById(id);
     }
+
+    @GetMapping("/rest/{id}")
+    public ResponseEntity<Idol> idolByIdRest(@PathVariable("id") Long id) {
+        return restTemplate.getForEntity("http://localhost:8080/api/members/{id}", Idol.class, id);
+
+    }
+
 
 }

@@ -371,4 +371,91 @@ GET http://localhost:8080/rest-api/members?size=3&page=1
 
 ## 3. Consuming REST services
 
+- Microservice 에서 유용
+- Spring application 이 API를 제공 + 다른 application API를 호출
+- Spring에서 다른 REST API와 상호작용하는 방법
+    - _RestTemplate_ : synchronous REST client
+    - _Traverson_ : Spring RestTemplate 의 Wrapper
+        - SPring HATEOAS가 제공
+        - hyperlink-aware, synchronous REST client
+    - _WEBClient_ : asynchronous REST client
+
+#### RestTemplate
+
+- REST API호출에 대한 중복 코드를 제거해줌
+- 중복 코드 : client, request 객체 생성 -> reqeust 실행 -> response 처리 -> response 객체 매핑 -> 예외 처리
+- JDBC Template과 비슷함
+
+| Mehod                  | Description                                  |
+|------------------------|----------------------------------------------|
+| `delete(...)`          | HTTP DELETE 요청을 보냄                           |
+| `exchange(...)`        | HTTP 요청을 보냄<br/>return `ResponseEntity`      |
+| `execute(...)`         | HTTP 요청을 보냄<br/>return `Object`              |
+| `getForEntity(...)`    | HTTP GET 요청을 보냄<br/>return `ResponseEntity`  |
+| `getForObject(...)`    | HTTP GET 요청을 보냄<br/>return `Object`          |
+| `headForHeaders(...)`  | HTTP HEAD 요청을 보냄<br/>return `HttpHeaders`    |
+| `optionsForAllow(...)` | HTTP OPTIONS 요청을 보냄<br/>return `Allow`       |
+| `patchForObject(...)`  | HTTP PATCH 요청을 보냄<br/>return `Object`        |
+| `postForEntity(...)`   | HTTP POST 요청을 보냄<br/>return `ResponseEntity` |
+| `postForLocation(...)` | HTTP POST 요청을 보냄<br/>return `생성된 리소스 URL`    |
+| `postForObject(...)`   | HTTP POST 요청을 보냄<br/>return `Object`         |
+| `put(...)`             | HTTP PUT 요청을 보냄                              |
+
+````
+RestTemplate restTemplate = new RestTemplate();
+
+...
+
+// Bean으로 등록해서 사용하기
+@Bean
+public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    return new RestTemplate();
+}
+````
+
+### 3.1 GETing resources
+
+```
+@GetMapping("/rest/{id}")
+public ResponseEntity<Idol> idolByIdRest(@PathVariable("id") Long id) {
+    return restTemplate.getForEntity("http://localhost:8080/api/members/{id}", Idol.class, id);
+}
+```
+
+### 3.2 PUTing resources
+
+````
+public void updateIdol(Idol idol) {
+    restTemplate.put("http://localhost:8080/api/members/{id}", idol, idol.getId());
+}
+````
+
+### 3.3 DELETEing resources
+
+```
+public void deleteIdol(Idol idol) {
+    restTemplate.delete("http://localhost:8080/api/members/{id}", idol.getId());
+}
+```
+
+### 3.4 POSTing resources
+
+````
+public Idol createIdol(Idol idol) {
+    return restTemplate.postForObject("http://localhost:8080/api/members", idol, Idol.class);
+}
+
+// 부가 정보 얻기
+public java.net.URI createIdol(Idol idol) {
+    return restTemplate.postForLocation("http://localhost:8080/api/members", idol);
+}
+
+// 생성 객체 + 부가정보 얻기
+public Idol createIdol(Idol idol) {
+    ResponseEntity<Idol> responseEntity = restTemplate.postForEntity("http://localhost:8080/api/members", idol, Idol.class);
+    logger.info("New resource created at " + responseEntity.getHeaders().getLocation());
+    return responseEntity.getBody();
+}
+````
+
 ## 4. Summary
