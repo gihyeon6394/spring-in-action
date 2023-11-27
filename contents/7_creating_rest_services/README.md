@@ -459,3 +459,11 @@ public Idol createIdol(Idol idol) {
 ````
 
 ## 4. Summary
+
+- REST endpoint는 Spring MVC controller로 작성
+- model, view를 무시하고 data를 response body에 추가하는 방법
+    - `@ResponseBody`를 쓰거나 return type을 `ResponseEntity`로 지정
+- REST controller를 추가하는 간단한 방법 : `@RestController`
+    - `@Controller` + `@ResponseBody`와 같음
+- Spring Data REST를 사용하면, repository 기반의 REST endpoint를 자동으로 생성
+    - `@RepositoryRestResource` : Spring Data REST가 생성하는 REST endpoint의 이름을 변경
